@@ -103,7 +103,25 @@ class BodyTest(unittest.TestCase):
         self.assertTrue(body.endswith("_Report truncated; see the grade log for the full output._"))
         self.assertIn("<details>", body)
         self.assertNotIn("x" * (autograder.MESSAGE_LIMIT + 1), body)
+        self.assertIn("\n... (truncated)", body)
         self.assertEqual(body.count("<details>"), body.count("</details>"))
+
+    def test_body_capped_with_long_compile_lines(self):
+        cases = {
+            "one huge line": "y" * 500_000,
+            "40 long lines": "\n".join("z" * 5000 for _ in range(40)),
+            "huge backtick line": "`" * 500_000,
+        }
+        for name, out in cases.items():
+            for with_failures in (False, True):
+                rows = [row(f"k{i}", message="x" * 5000) for i in range(200)] if with_failures else [row("k")]
+                with self.subTest(case=name, failures=with_failures):
+                    body = autograder.render_body(self.scope, rows, [row("B", series="B", passed=True)], out)
+                    self.assertLessEqual(len(body), autograder.BODY_LIMIT)
+                    self.assertIn("## Your code doesn't compile", body)
+                    self.assertIn("## Bonus", body)
+                    if with_failures:
+                        self.assertTrue(body.endswith("full output._"))
 
     def test_message_fence_safe(self):
         msg = "before ``` mid ````` </details> after"

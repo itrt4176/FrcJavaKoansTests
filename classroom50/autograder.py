@@ -9,6 +9,7 @@ from typing import Mapping, NamedTuple
 MESSAGE_LIMIT = 2000
 BODY_LIMIT = 100_000
 COMPILE_LINES = 40
+COMPILE_CHARS = 10_000
 GRADER_TIMEOUT = 300
 
 TRUNCATED_NOTE = "_Report truncated; see the grade log for the full output._"
@@ -72,7 +73,7 @@ def build_result(env: Mapping, rows: list) -> dict:
     }
 
 
-def _fence(text: str) -> tuple:
+def _fence(text: str) -> str:
     longest = max((len(m) for m in re.findall(r"`+", text)), default=0)
     return "`" * max(4, longest + 1)
 
@@ -101,8 +102,10 @@ def render_body(scope: Scope, rows: list, bonus_rows: list, compile_output) -> s
     total = sum(r["assertions"] for r in rows)
     head = [f"# {scope.label}: {score}/{total}\n"]
     if compile_output is not None:
-        lines = compile_output.splitlines()[:COMPILE_LINES]
-        head.append("## Your code doesn't compile\n\n" + _fenced("\n".join(lines)) + "\n")
+        text = "\n".join(compile_output.splitlines()[:COMPILE_LINES])
+        if len(text) > COMPILE_CHARS:
+            text = text[:COMPILE_CHARS] + "\n... (truncated)"
+        head.append("## Your code doesn't compile\n\n" + _fenced(text) + "\n")
     table = ["## Koans\n", "| Koan | Points | Result |", "| --- | --- | --- |"]
     for r in rows:
         earned = r["assertions"] if r["passed"] else 0
