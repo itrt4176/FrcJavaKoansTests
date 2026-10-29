@@ -44,10 +44,50 @@ tasks.compileJava {
     dependsOn tasks.syncSolutions
 }
 
+def classroomBundle = layout.buildDirectory.dir('classroom50/bundle')
+
+tasks.register('stageClassroomBundle', Sync) {
+    group = 'koans'
+    description = 'Stage the Classroom 50 grading bundle (autograder, milestones, pristine engine and sensei)'
+    dependsOn tasks.syncKoansEngine
+    // Reads src/staging/java, which syncSolutions also writes (solutions only; never copied here).
+    mustRunAfter tasks.syncSolutions
+
+    into classroomBundle
+    from(layout.projectDirectory.dir('classroom50')) {
+        include 'autograder.py', 'milestones.json'
+    }
+    // Only engine/ and sensei/: staging also holds the solutions, which must never be bundled.
+    from(layout.projectDirectory.dir('src/staging/java')) {
+        include 'engine/**', 'sensei/**'
+        into 'src'
+    }
+    from(layout.projectDirectory.dir('src/main/java')) {
+        include 'engine/Grader.java'
+        into 'src'
+    }
+    preserve {
+        include 'koans.json'
+    }
+}
+
+tasks.register('buildClassroomBundle', JavaExec) {
+    group = 'koans'
+    description = 'Build the Classroom 50 grading bundle in build/classroom50/bundle'
+    dependsOn tasks.stageClassroomBundle, tasks.classes
+
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'engine.Grader'
+    doFirst {
+        def milestones = new groovy.json.JsonSlurper().parse(file('classroom50/milestones.json'))
+        args(['--list', classroomBundle.get().file('koans.json').asFile.path] + milestones.collect { it.series })
+    }
+}
+
 tasks.register('verifyClassroom', Exec) {
     group = 'koans'
     description = 'Run the Classroom 50 grading and submission tests'
-    dependsOn tasks.syncKoansEngine
+    dependsOn tasks.syncKoansEngine, tasks.buildClassroomBundle
 
     workingDir = layout.projectDirectory
     commandLine 'bash', 'classroom50/verify.sh'

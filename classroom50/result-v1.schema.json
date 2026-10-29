@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/foundation50/classroom50/main/schemas/result-v1.schema.json",
+  "title": "classroom50/result/v1",
+  "description": "Machine-readable schema for the result.json an autograder (or runner.py's synthesized error/vacuous/declarative paths) writes per submission. Mirrors the authoritative validators runner.py::validate_result and collect_scores.py::validate_result (cli/gh-teacher/skeleton/dotgithub/scripts/). Rules JSON Schema cannot express, enforced in code: (1) classroom/assignment/owner must match the SOURCE REPO's identity (a hostile result can't land in another student's gradebook); `owner` is the identity anchor (the <username> from the repo name). (2) assignment_type must match the assignment's configured mode. (3) score <= max-score and per-test score <= per-test max-score are cross-field. There is no `usernames` field: who pushed is `submitted_by`, who owns the repo is `owner`, and the credited member list (group only) is resolved by collection. This schema captures only the structural contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "classroom",
+    "assignment",
+    "assignment_type",
+    "owner",
+    "submission",
+    "commit",
+    "release",
+    "review",
+    "datetime",
+    "score",
+    "max-score",
+    "tests"
+  ],
+  "properties": {
+    "schema": { "const": "classroom50/result/v1" },
+    "classroom": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Classroom short-name. Must equal the source repo's classroom (enforced in code against the repo identity)."
+    },
+    "assignment": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Assignment slug. Must equal the source repo's assignment (enforced in code)."
+    },
+    "assignment_type": {
+      "enum": ["individual", "group", "team"],
+      "description": "The assignment's mode, stamped by the runner from the MODE env. Collection cross-checks it against assignments.json `mode` and warns-and-skips on mismatch."
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The repo owner login (the <username> from <classroom>-<assignment>-<username>). The identity anchor the validators check; for an individual assignment it is the sole credited student, for a legacy group it is the founder whose repo was graded. For a `team` assignment the repo carries no username — `owner` is the repo-name tail `group-<n>` (the team counter segment), which stays the stable per-bucket key while collection resolves the credited members from the GitHub Team."
+    },
+    "submission": {
+      "type": "string",
+      "pattern": "^submit/",
+      "description": "The submit/<UTC-timestamp>-<short-sha> tag this result graded."
+    },
+    "commit": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Link to the graded commit on the Git host."
+    },
+    "release": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Link to the submission release on the Git host."
+    },
+    "review": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Full-diff (baseline...graded commit) review link; equals `commit` when there is nothing to compare."
+    },
+    "datetime": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\dZ$",
+      "description": "The SUBMISSION instant: the graded commit's committer date (UTC), formatted YYYY-MM-DDTHH:MM:SSZ. Stamped by the runner and INVARIANT across regrades of the same commit, so collect-scores' `late` marking (datetime vs the assignment `due`) never changes when a teacher re-runs grading. Advisory: nothing enforces the deadline."
+    },
+    "graded_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\dZ$",
+      "description": "Optional. The wall-clock UTC instant THIS grading run produced the result, formatted YYYY-MM-DDTHH:MM:SSZ. Unlike `datetime` (the fixed submission time), `graded_at` moves on every regrade, so the gradebook can show when a submission was last (re-)graded. Absent on results produced before this field existed."
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Points earned. Must be <= max-score (cross-field, enforced in code)."
+    },
+    "max-score": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total points available (0 for a vacuous/error result)."
+    },
+    "tests": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/testResult" },
+      "description": "Per-test outcomes. Empty for a vacuous pass (no autograder configured) or an error result."
+    },
+    "submitted_by": {
+      "$ref": "#/$defs/submittedBy"
+    }
+  },
+  "$defs": {
+    "submittedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["username"],
+      "description": "Optional: the GitHub actor who pushed THIS submission, stamped by the runner from GITHUB_ACTOR/GITHUB_ACTOR_ID. For a group submission the score is credited to every member (collection resolves the member list), but `submitted_by` records who actually pushed this particular submission. Absent on results produced before this field existed.",
+      "properties": {
+        "username": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The pusher's GitHub login (GITHUB_ACTOR)."
+        },
+        "id": {
+          "type": ["integer", "null"],
+          "description": "The pusher's numeric GitHub user id (GITHUB_ACTOR_ID), or null when unavailable."
+        }
+      }
+    },
+    "testResult": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["test-name", "passed", "score", "max-score"],
+      "description": "One graded test. additionalProperties is true: an autograder.py may attach extra diagnostic fields (e.g., output, message) that the runner and collector preserve verbatim.",
+      "properties": {
+        "test-name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable test name (the declarative grader uses the assignment test `name`)."
+        },
+        "passed": { "type": "boolean" },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Points earned on this test. Must be <= this test's max-score (cross-field, enforced in code)."
+        },
+        "max-score": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
