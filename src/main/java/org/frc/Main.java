@@ -36,12 +36,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        var result = RunResult.ZERO;
-
-        for (var locale : Locale.values()) {
-            System.setProperty("locale", locale.name());
-            result = result.append(executeSuiteListsIn(locale));
-        }
+        var result = executeSuiteListsIn(Locale.en);
 
         System.out.printf("%n%s/%s assertions executed successfully in %s koans.%n", result.succeededAssertions, result.totalAssertions, result.totalKoans);
 
