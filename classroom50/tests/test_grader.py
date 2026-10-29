@@ -89,6 +89,34 @@ class GraderTest(unittest.TestCase):
         for row in others:
             self.assertTrue(row["passed"], row)
 
+    def test_lone_surrogate_in_output_is_escaped(self):
+        # An exception message reaches the koan message as a Java String (console
+        # output does not: it goes through UTF-8 bytes and becomes '?'). An
+        # unpaired surrogate there would make writing the JSON throw, so the
+        # Grader must escape it. A valid pair passes through.
+        line = 'System.out.println("Hello!");'
+
+        def patch(java):
+            path = java / "koans/english/AboutConsoleAndVariables.java"
+            text = path.read_text()
+            self.assertIn(line, text)
+            path.write_text(text.replace(
+                line, 'if (true) throw new RuntimeException("a\\uD800b\\uD83D\\uDE00c");', 1))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            classes = build("solved", root, patch)
+            out = root / "out.json"
+            rows = support.run_grader(classes, out, SERIES)
+            raw = out.read_text(encoding="utf-8")
+        self.assertEqual(len(rows), 8)
+        first = rows[0]
+        self.assertEqual(first["koan"], SAY_HELLO_KOAN)
+        self.assertFalse(first["passed"])
+        self.assertIn("a\ud800b\U0001F600c", first["message"])
+        self.assertIn("\\ud800", raw)
+        self.assertIn("\U0001F600", raw)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -92,6 +92,12 @@ public final class Grader {
                 sb.append('\\').append(c);
             } else if (c < 0x20 || c == 0x7f || c == 0x2028 || c == 0x2029) {
                 sb.append(String.format("\\u%04x", (int) c));
+            } else if (Character.isHighSurrogate(c) && i + 1 < s.length()
+                && Character.isLowSurrogate(s.charAt(i + 1))) {
+                sb.append(c).append(s.charAt(++i));
+            } else if (Character.isSurrogate(c)) {
+                // Unpaired: escape it, since writing it as UTF-8 would throw.
+                sb.append(String.format("\\u%04x", (int) c));
             } else {
                 sb.append(c);
             }
