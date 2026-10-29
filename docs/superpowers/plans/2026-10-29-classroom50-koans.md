@@ -239,8 +239,11 @@
 
 - [ ] **Step 1: Write the failing tests** in `test_end_to_end.py`. They grade checkouts from `support.make_checkout` through `grade-local.sh` against the built bundle. Before validating each `result.json` with `jsonschema` against `classroom50/result-v1.schema.json`, add `owner="local"` and `assignment_type="individual"`, the same fields the runner stamps. Also check `score <= max-score` overall and per test. Tests:
   - `test_solved_every_milestone`: for each of the 11 tags, `score == max-score > 0`, all tests passed, and `max-score` equals the sum of `assertions` in `koans.json` for that series.
-  - `test_blank_scores_zero`: for `loops`, `objects`, `arrays`, and `submit/verify`: `score == 0`, with `max-score` the same as for solved.
-  - `test_broken_scores_zero`: same refs on a broken checkout: `score == 0`, `release-body.md` contains `Your code doesn't compile`, and `max-score` the same as for solved.
+  - `test_solved_submit`: solved, `submit/verify` → `score == max-score > 0`, all tests passed.
+  - `test_blank_scores_zero`: for each of the 11 tags and `submit/verify`: `score == 0`, with `max-score` the same as for solved.
+  - `test_broken_scores_zero`: same 12 refs on a broken checkout: `score == 0`, `release-body.md` contains `Your code doesn't compile`, and `max-score` the same as for solved.
+  
+  This is the spec's full set: 12 refs × 3 checkouts = 36 gradings. Use one checkout per kind; make a fresh copy for each grading, because the overlay and outputs change the checkout.
   - `test_submit_full_course`: solved, `submit/verify` → test names cover exactly the 9 main series (no `AboutArrays.`/`AboutInterfaces.`), and the body contains `# Full course:` and `## Bonus`.
   - `test_overlay_discards_engine_edits`: a blank checkout plus `src/main/java/engine/Cheat.java` containing `this is not java`; ref `loops` → body has no `doesn't compile`, and `Cheat.java` is gone.
   - `test_unknown_ref_errors`: ref `nope` → nonzero exit, no `result.json`.
