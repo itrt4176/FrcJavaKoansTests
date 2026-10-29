@@ -95,6 +95,22 @@ class BodyTest(unittest.TestCase):
         self.assertIn("line40", body)
         self.assertNotIn("line41", body)
 
+    def test_body_compile_error_has_no_failure_section(self):
+        rows = [row(f"k{i}", message="") for i in range(3)]
+        body = autograder.render_body(self.scope, rows, [], "Foo.java:1: error")
+        self.assertNotIn("## What failed", body)
+        self.assertNotIn("<details>", body)
+        self.assertNotIn("````text\n\n````", body)
+        self.assertIn("# Loops: 0/6", body)
+
+    def test_body_skips_failures_without_message(self):
+        rows = [row("k0", message=""), row("k1", message="real")]
+        body = autograder.render_body(self.scope, rows, [], None)
+        self.assertNotIn("S.k0: 2 of 2", body)
+        self.assertIn("S.k1: 2 of 2 assertions failed", body)
+        body = autograder.render_body(self.scope, [row("k0", message="")], [], None)
+        self.assertNotIn("## What failed", body)
+
     def test_body_bonus_table(self):
         bonus = [row("BonusKoan", series="B", passed=True, message="")]
         body = autograder.render_body(self.scope, [row("k")], bonus, None)
@@ -126,8 +142,8 @@ class BodyTest(unittest.TestCase):
                     self.assertLessEqual(len(body), autograder.BODY_LIMIT)
                     self.assertIn("## Your code doesn't compile", body)
                     self.assertIn("## Bonus", body)
-                    if with_failures:
-                        self.assertTrue(body.endswith("full output._"))
+                    # The compiler output replaces the per-koan failures.
+                    self.assertNotIn("## What failed", body)
 
     def test_message_fence_safe(self):
         msg = "before ``` mid ````` </details> after"

@@ -133,7 +133,11 @@ def render_body(scope: Scope, rows: list, bonus_rows: list, compile_output) -> s
             bonus.append(f"| {_cell(r['series'] + '.' + r['koan'])} | {'✅' if r['passed'] else '❌'} |")
         tail_text = "\n" + "\n".join(bonus) + "\n"
 
-    failing = [r for r in rows if not r["passed"]]
+    # A compile failure fails every koan with no message; the compiler output
+    # above already explains it, so leave out the per-koan section.
+    failing = [] if compile_output is not None else [
+        r for r in rows if not r["passed"] and r["message"]
+    ]
     failures_text = ""
     truncated = False
     if failing:
