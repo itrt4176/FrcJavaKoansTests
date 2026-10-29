@@ -44,6 +44,15 @@ tasks.compileJava {
     dependsOn tasks.syncSolutions
 }
 
+tasks.register('verifyClassroom', Exec) {
+    group = 'koans'
+    description = 'Run the Classroom 50 grading and submission tests'
+    dependsOn tasks.syncKoansEngine
+
+    workingDir = layout.projectDirectory
+    commandLine 'bash', 'classroom50/verify.sh'
+}
+
 // Experiment to see if could be asserting failures for particular koans as well. Not used for now.
 abstract class InjectKoansSources extends DefaultTask {
     @InputFile

@@ -1,0 +1,13 @@
+[
+  {"tag": "console-and-variables", "series": "AboutConsoleAndVariablesKoans", "bonus": false},
+  {"tag": "methods", "series": "AboutMethodsKoans", "bonus": false},
+  {"tag": "conditions", "series": "AboutConditionsKoans", "bonus": false},
+  {"tag": "more-methods", "series": "AboutMoreMethodsKoans", "bonus": false},
+  {"tag": "decimal-numbers", "series": "AboutDecimalNumbersKoans", "bonus": false},
+  {"tag": "loops", "series": "AboutLoopsKoans", "bonus": false},
+  {"tag": "not7-game", "series": "AboutNot7GameKoans", "bonus": false},
+  {"tag": "classes", "series": "AboutClassesKoans", "bonus": false},
+  {"tag": "objects", "series": "AboutObjectsKoans", "bonus": false},
+  {"tag": "arrays", "series": "AboutArraysKoans", "bonus": true},
+  {"tag": "interfaces", "series": "AboutInterfacesKoans", "bonus": true}
+]
