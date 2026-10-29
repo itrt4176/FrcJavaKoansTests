@@ -9,6 +9,7 @@ MILESTONES = json.loads((HERE.parent / "milestones.json").read_text())
 GHSUBMIT = ROOT.parent / "FrcJavaKoans/bin/ghsubmit"
 WISDOM = ROOT.parent / "FrcJavaKoans/src/main/java/sensei/Wisdom.java"
 SETUP = HERE.parent / "assignment-setup.sh"
+VSCODE_SETTINGS = ROOT.parent / "FrcJavaKoans/.vscode/settings.json"
 
 
 def marker_tags(path):
@@ -32,6 +33,13 @@ class ConsistencyTest(unittest.TestCase):
         wisdom = re.findall(r"(\w+Koans)\.koans", WISDOM.read_text())
         series = [m["series"] for m in MILESTONES if not m["bonus"]]
         self.assertEqual(series, wisdom)
+
+    def test_java_output_is_not_bin(self):
+        # bin/ holds ghsubmit; the Java language server cleans its output
+        # folder on a full build, so the output must go elsewhere.
+        settings = json.loads(VSCODE_SETTINGS.read_text())
+        output = settings.get("java.project.outputPath", "")
+        self.assertNotIn(output.strip("./").split("/")[0], ("bin", ""))
 
 
 if __name__ == "__main__":
