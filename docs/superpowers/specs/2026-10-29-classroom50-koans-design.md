@@ -52,7 +52,7 @@ Repositories involved:
 Order in the file is Sensei order (`Wisdom.koans`, then bonuses). The same list appears in three other places, all checked against this file by `verifyClassroom`:
 
 1. The bundle copy read by `autograder.py`.
-2. The fork's `submit.sh` menu.
+2. The fork's `ghsubmit` menu.
 3. The `--submission-tag` arguments in `classroom50/assignment-setup.sh`.
 
 ## Components
@@ -65,18 +65,18 @@ Order in the file is Sensei order (`Wisdom.koans`, then bonuses). The same list 
    - Accepting the assignment on classroom50.org.
    - Opening the repo in Tiger Code.
    - Running `src/main/java/EnglishPathToEnlightment.java` and reading the Sensei's output.
-   - Committing work and submitting a series with `submit.sh`; resubmitting is allowed.
+   - Committing work and submitting a series by running `ghsubmit` in the terminal; resubmitting is allowed.
    - Finding results under the repo's Releases.
    - Credits to jletroui's upstream project and its license.
    The Codespaces, zip download, and French sections are removed.
-3. **`submit.sh`** (repo root, bash). Interactive:
+3. **`bin/ghsubmit`** (bash, committed with the executable bit). Interactive:
    1. Shows a numbered menu of the 11 milestones.
    2. Warns and asks for confirmation if there are uncommitted changes.
    3. Pushes the current branch.
    4. Runs `git tag -f <milestone>` and `git push -f origin <milestone>`.
    5. Prints the repo's Releases URL.
-   It has no grading logic. README tells students to run `bash submit.sh`, which does not depend on the executable bit.
-4. **Devcontainer.** No change for Classroom 50.
+   It has no grading logic. Students run it as `ghsubmit` from any directory in the workspace.
+4. **Devcontainer.** Add `bin/` to `PATH` with `"remoteEnv": { "PATH": "${containerEnv:PATH}:${containerWorkspaceFolder}/bin" }` (`remoteEnv` is on Tiger Code's allowlist). `ghsubmit` resolves the repo from its own location, so it works from any working directory.
 5. **Template flag.** Set "Template repository" in GitHub settings (manual, at rollout).
 
 ### FrcJavaKoansTests (grading and verification)
@@ -109,7 +109,7 @@ Order in the file is Sensei order (`Wisdom.koans`, then bonuses). The same list 
 
 ## Data flow
 
-1. Student runs `bash submit.sh`, picks `loops`; `loops` is force-pushed.
+1. Student runs `ghsubmit`, picks `loops`; `loops` is force-pushed.
 2. The student repo's `autograde.yaml` (written by Classroom 50 at accept) fires on the `loops` tag push.
 3. Classroom 50's runner mints `submit/<UTC>-<sha>`, sets up JDK 17, downloads the bundle, and runs `autograder.py` in the checkout with `GITHUB_REF_NAME=loops`.
 4. `autograder.py` overlays, compiles, runs Grader on `AboutLoopsKoans`, and writes `result.json` and `release-body.md`.
@@ -132,14 +132,14 @@ Order in the file is Sensei order (`Wisdom.koans`, then bonuses). The same list 
 ## Testing
 
 - **Fork engine tests.** `engine.test.runner.TestRunner` passes under the WPILib JDK 17 after the French removal. Record the new expected count in the workspace CLAUDE.md (currently 185/185).
-- **`submit.sh` test.** A bash test using a temporary repo with a bare remote: the chosen tag is created and pushed; a second run moves it with `-f`.
+- **`ghsubmit` test.** A bash test using a temporary repo with a bare remote: the chosen tag is created and pushed; a second run moves it with `-f`.
 - **`./gradlew run`.** English-only solutions check passes. Record the new expected count in the workspace CLAUDE.md (currently 512/512 in 162 koans).
 - **`./gradlew verifyClassroom`.** For each of the 11 milestones and for `submit/verify`, run `grade-local.sh` against three checkouts built in `build/`:
   - **Solved** (fork `src/main/java` overlaid with `src/inject/passing/`): `score == max-score`, every row passed.
   - **Blank** (fork as-is): `score == 0`.
   - **Broken** (blank plus one file with a syntax error): `score == 0` and `release-body.md` contains "doesn't compile".
 
-  Every `result.json` is validated against `classroom50/result-v1.schema.json` with `jsonschema` in a throwaway venv under `build/`, and checked for `score <= max-score` overall and per row. The task also fails if `submit.sh`'s menu (read from `../FrcJavaKoans/submit.sh`) or `assignment-setup.sh`'s tags differ from `milestones.json`.
+  Every `result.json` is validated against `classroom50/result-v1.schema.json` with `jsonschema` in a throwaway venv under `build/`, and checked for `score <= max-score` overall and per row. The task also fails if `ghsubmit`'s menu (read from `../FrcJavaKoans/bin/ghsubmit`) or `assignment-setup.sh`'s tags differ from `milestones.json`.
 
 ## Rollout (manual, by Nick)
 
@@ -150,7 +150,7 @@ Order in the file is Sensei order (`Wisdom.koans`, then bonuses). The same list 
 5. Run `classroom50/assignment-setup.sh itrt4176 <classroom> <slug>`.
 6. With a test student account:
    - Accept the assignment and open the repo in Tiger Code.
-   - Run `submit.sh`, then resubmit the same milestone; confirm the force-pushed tag works with the Tiger Code token and each attempt gets its own Release titled "via `<milestone>`".
+   - Run `ghsubmit` from a new Tiger Code terminal (confirms the `PATH` entry), then resubmit the same milestone; confirm the force-pushed tag works with the Tiger Code token and each attempt gets its own Release titled "via `<milestone>`".
    - Run Regrade on that repo and confirm the regraded result still grades the milestone's series (that `GITHUB_REF_NAME` survives a re-run).
 
 ## Unverified assumptions
@@ -159,6 +159,7 @@ Order in the file is Sensei order (`Wisdom.koans`, then bonuses). The same list 
 - Tiger Code's GitHub App token can force-push tags (Contents: write).
 - GitHub's Release body limit (about 125,000 characters) is above the 100,000-character cap.
 - The engine detects infinite loops in student code.
+- Tiger Code applies `remoteEnv` and expands `${containerWorkspaceFolder}`, and the template copy keeps `ghsubmit`'s executable bit.
 - The number of engine tests and solution assertions that disappear with French.
 
 ## Out of scope
